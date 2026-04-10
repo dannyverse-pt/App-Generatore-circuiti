@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Generatore Circuiti & Timer</title>
+  <style>
+    :root{--panel:rgba(18,26,48,.82);--panel2:rgba(255,255,255,.05);--text:#eef2ff;--muted:#aab4d6;--primary:#6ea8fe;--primary2:#8b5cf6;--accent:#22c55e;--border:rgba(255,255,255,.12);--shadow:0 20px 50px rgba(0,0,0,.35);--radius:24px}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,sans-serif;color:var(--text);background:linear-gradient(160deg,#08101f 0%,#0b1020 35%,#10182c 100%);min-height:100vh}
+    .container{width:min(1180px,calc(100% - 32px));margin:0 auto}
+    .topbar{position:sticky;top:0;backdrop-filter:blur(18px);background:rgba(8,16,31,.6);border-bottom:1px solid rgba(255,255,255,.08);z-index:20}
+    .topbar-inner{display:flex;align-items:center;justify-content:space-between;min-height:72px;gap:20px}
+    .brand{display:flex;align-items:center;gap:14px;font-weight:800}
+    .brand-badge{width:42px;height:42px;display:grid;place-items:center;border-radius:14px;background:linear-gradient(135deg,var(--primary),var(--primary2))}
+    .brand small{display:block;color:var(--muted);font-size:.72rem;text-transform:uppercase}
+    .btn{border-radius:999px;padding:.9rem 1.2rem;text-decoration:none;border:1px solid transparent;font-weight:700}
+    .btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff}
+    .hero{padding:36px 0}
+    .hero-card,.sidebar-panel,.workspace-panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .hero-card{padding:28px}
+    .eyebrow{display:inline-flex;padding:8px 12px;border-radius:999px;background:rgba(110,168,254,.12);color:#cfe0ff;border:1px solid rgba(110,168,254,.2);font-size:.8rem;font-weight:700;text-transform:uppercase}
+    h1,h2,h3{margin:0;line-height:1.05}
+    h1{margin-top:16px;font-size:clamp(2rem,4vw,3.5rem)}
+    .lead{color:var(--muted);line-height:1.7}
+    .builder-shell{display:grid;grid-template-columns:320px 1fr;gap:20px;padding-bottom:36px}
+    .sidebar-panel,.workspace-panel{padding:20px}
+    .panel-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+    .field-block{margin-bottom:12px}
+    .field-label{display:block;margin:0 0 8px;font-size:.85rem;font-weight:700;color:#dbe5ff}
+    .real-input,.fake-button,.secondary-button,.empty-slot,.multi-trigger{width:100%;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+    .real-input,.multi-trigger{height:52px;padding:0 14px;color:var(--text);font-size:.94rem;appearance:none}
+    .real-input{background:rgba(255,255,255,.04) url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23cfe0ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 14px center; padding-right:40px}
+    .real-input option{background:#0b1020;color:var(--text)}
+    .multi-select{position:relative}
+    .multi-trigger{display:flex;align-items:center;justify-content:space-between;cursor:pointer;text-align:left}
+    .multi-trigger::after{content:'▾';font-size:.9rem;color:#cfe0ff;opacity:.9}
+    .multi-select.is-open .multi-trigger{border-color:rgba(110,168,254,.35);background:rgba(110,168,254,.08)}
+    .multi-select.is-open .multi-trigger::after{content:'▴'}
+    .multi-menu{position:absolute;top:calc(100% + 8px);left:0;right:0;display:none;max-height:240px;overflow:auto;padding:10px;border-radius:16px;background:rgba(10,17,34,.98);border:1px solid rgba(255,255,255,.08);box-shadow:0 18px 40px rgba(0,0,0,.35);z-index:30}
+    .multi-select.is-open .multi-menu{display:grid;gap:8px}
+    .multi-option{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.03);cursor:pointer}
+    .multi-option:hover{background:rgba(110,168,254,.08)}
+    .multi-option input{accent-color:#8b5cf6;inline-size:16px;block-size:16px}
+    
+    /* UI Aggiornata: Tabs e Input editabili */
+    .tabs-container{display:flex;gap:8px;margin-bottom:16px;background:rgba(255,255,255,.03);padding:6px;border-radius:16px}
+    .tab-btn{flex:1;background:transparent;border:none;color:var(--muted);padding:10px;border-radius:10px;font-weight:700;cursor:pointer;transition:all 0.2s}
+    .tab-btn.active{background:rgba(255,255,255,.1);color:#fff}
+    .tab-content{display:none}
+    .tab-content.active{display:block}
+    
+    .action-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+    #generate-btn{grid-column: 1 / -1;}
+    .fake-button,.secondary-button{height:52px;display:grid;place-items:center;font-weight:800;color:#fff;cursor:pointer;border-radius:14px;border:none;font-family:inherit;font-size:1rem;}
+    .fake-button{background:linear-gradient(135deg,rgba(110,168,254,.95),rgba(139,92,246,.95)); transition: transform 0.1s;}
+    .fake-button:active{transform:scale(0.98);}
+    .secondary-button{background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08);}
+    .secondary-button:hover:not(:disabled){background:rgba(255,255,255,.1);}
+    .secondary-button:disabled{opacity:.45;cursor:not-allowed}
+    
+    .helper-text{margin:10px 2px 0;color:var(--muted);font-size:.83rem;line-height:1.55}
+    .protocol-box{margin-bottom:14px;padding:16px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);display:grid;gap:8px}
+    .protocol-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .protocol-pill{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--muted);font-size:.9rem}
+    .note-box{padding:12px 14px;border-radius:14px;background:rgba(110,168,254,.08);border:1px solid rgba(110,168,254,.16);color:#dbe7ff;line-height:1.6}
+    .stack{display:grid;gap:12px}
+    .empty-slot{min-height:92px;padding:14px;display:flex;flex-direction:column;justify-content:center;gap:8px; position:relative;}
+    .station-card{min-height:124px}
+    .slot-top{display:flex;justify-content:space-between;font-weight:700;gap:12px;align-items:center;}
+    
+    .tag{display:inline-flex;align-items:center;justify-content:center;padding:6px 10px;border-radius:999px;font-size:.8rem;color:#d9e3ff;background:rgba(110,168,254,.12);border:1px solid rgba(110,168,254,.18)}
+    .rep-input{background:linear-gradient(135deg,rgba(139,92,246,.25),rgba(110,168,254,.25));border:1px solid rgba(139,92,246,.4);color:#fff;font-weight:800;letter-spacing:0.02em; padding:6px 12px; border-radius:999px; font-size:.85rem; width:110px; text-align:center; font-family:inherit; outline:none; transition:all 0.2s;}
+    .rep-input:focus{border-color:#fff; box-shadow:0 0 0 2px rgba(255,255,255,0.2); background:rgba(139,92,246,.4);}
+    .btn-swap{background:rgba(255,255,255,0.1); border:none; border-radius:8px; width:28px; height:28px; display:grid; place-items:center; cursor:pointer; color:#fff; transition:0.2s; position:absolute; right:14px; bottom:14px;}
+    .btn-swap:hover{background:var(--primary); transform:rotate(90deg);}
+    .btn-remove{background:rgba(239, 68, 68, 0.2); border:none; border-radius:8px; width:28px; height:28px; display:grid; place-items:center; cursor:pointer; color:#fca5a5; position:absolute; right:48px; bottom:14px;}
+    .btn-remove:hover{background:#ef4444; color:#fff;}
+    
+    .muted{color:var(--muted)}
+    
+    /* Griglia Timer Personalizzato */
+    .custom-timer-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;}
+    
+    /* Modale Timer Visivo */
+    .timer-overlay{position:fixed;inset:0;background:rgba(8,16,31,0.95);backdrop-filter:blur(12px);z-index:100;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.3s ease}
+    .timer-overlay.is-active{opacity:1;pointer-events:auto}
+    .timer-box{background:var(--panel);border:1px solid var(--border);padding:30px;border-radius:32px;box-shadow:0 30px 60px rgba(0,0,0,0.6);display:flex;flex-direction:column;align-items:center;gap:20px;width:90%;max-width:380px}
+    .timer-canvas-wrapper{position:relative;width:280px;height:280px;margin-bottom:-10px}
+    .timer-canvas-wrapper canvas{display:block;width:100%;height:100%}
+    .timer-actions{display:flex;gap:12px;width:100%}
+    #btn-timer-play{background:rgba(255,255,255,.1); flex:2;}
+    #btn-timer-stop{background:rgba(239, 68, 68, 0.15); color:#fca5a5; border-color:rgba(239, 68, 68, 0.3); flex:1;}
+    
+    /* Stili specifici Pannello AMRAP */
+    .amrap-panel{width:100%;background:rgba(0,0,0,0.2);border-radius:18px;padding:16px;border:1px solid rgba(255,255,255,0.05);display:none;}
+    .amrap-list{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:16px;}
+    .amrap-tag{font-size:0.75rem;padding:4px 8px;background:rgba(255,255,255,0.06);border-radius:6px;color:#dbe5ff; display:flex; gap:6px; align-items:center;}
+    .amrap-tag strong{color:#fff; background:rgba(139,92,246,.3); padding:2px 6px; border-radius:4px;}
+    .amrap-counter-box{display:flex;align-items:center;justify-content:space-between;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);padding:10px 14px;border-radius:14px;}
+    .amrap-counter-box span{color:#fca5a5;font-weight:800;font-size:1.1rem}
+    #btn-amrap-add{height:36px;padding:0 16px;font-size:0.9rem;border-radius:8px;background:#ef4444;color:#fff;border:none;font-weight:bold;cursor:pointer;transition:transform 0.1s;}
+    #btn-amrap-add:active{transform:scale(0.95);}
+
+    @media (max-width:1060px){.builder-shell{grid-template-columns:1fr}}
+    @media print{
+      :root{--text:#111827;--muted:#4b5563;--border:rgba(17,24,39,.12);--panel:#ffffff}
+      body{background:#fff;color:#111827}
+      .topbar,.hero,.sidebar-panel,.no-print,.btn-swap,.btn-remove,.tabs-container{display:none !important}
+      .container{width:100%;margin:0}
+      .builder-shell{display:block;padding:0}
+      .workspace-panel{padding:0;background:#fff;border:none;box-shadow:none}
+      .protocol-box,.empty-slot{background:#fff !important;color:#111827 !important;border:1px solid rgba(17,24,39,.12) !important;box-shadow:none !important}
+      .muted{color:#4b5563 !important}
+      .tag,.rep-input{background:#fff !important;color:#111827 !important;border:1px solid rgba(17,24,39,.16) !important}
+      .stack{gap:10px}
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <div class="brand">
+        <div class="brand-badge">⚡</div>
+        <div>
+          <small>Workout Tool</small>
+          <span>Generatore Circuiti Pro</span>
+        </div>
+      </div>
+      <a href="#builder" class="btn btn-primary">Vai al builder</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div class="hero-card">
+        <div class="eyebrow">Autoregolazione & Sostituzioni</div>
+        <h1>Generatore di circuiti di allenamento</h1>
+        <p class="lead">Costruisci circuiti con il database completo (100 esercizi). Sostituisci i movimenti 🔄 e personalizza le ripetizioni o usa le logiche Timer Custom per i tuoi WOD.</p>
+      </div>
+    </section>
+
+    <section id="builder" class="builder-shell">
+      <aside class="sidebar-panel">
+        
+        <div class="tabs-container no-print">
+          <button class="tab-btn active" data-target="tab-auto">Auto-Composizione</button>
+          <button class="tab-btn" data-target="tab-custom">Personalizzato</button>
+        </div>
+
+        <!-- TAB GENERATORE AUTOMATICO -->
+        <div id="tab-auto" class="tab-content active">
+          <div class="field-block">
+            <label class="field-label" for="station-count">Numero stazioni</label>
+            <select id="station-count" class="real-input">
+              <option value="4">4 stazioni</option>
+              <option value="5" selected>5 stazioni</option>
+              <option value="6">6 stazioni</option>
+              <option value="8">8 stazioni</option>
+            </select>
+          </div>
+          <div class="field-block">
+            <label class="field-label" for="duration">Durata</label>
+            <select id="duration" class="real-input">
+              <option value="15">15 minuti</option>
+              <option value="20" selected>20 minuti</option>
+              <option value="30">30 minuti</option>
+            </select>
+          </div>
+          <div class="field-block">
+            <label class="field-label" for="protocol">Protocollo</label>
+            <select id="protocol" class="real-input">
+              <option value="amrap" selected>AMRAP</option>
+              <option value="emom">EMOM</option>
+              <option value="interval">INTERVAL TRAINING</option>
+            </select>
+          </div>
+          <div class="field-block">
+            <label class="field-label" for="difficulty">Livello</label>
+            <select id="difficulty" class="real-input"><option value="all">Tutti</option><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select>
+          </div>
+          <div class="field-block">
+            <label class="field-label">Attrezzatura</label>
+            <div class="multi-select" id="equipment-multi">
+              <button id="equipment-trigger" class="multi-trigger" type="button">Tutta l'attrezzatura</button>
+              <div id="equipment-menu" class="multi-menu"></div>
+            </div>
+          </div>
+          <div class="field-block">
+            <label class="field-label">Gruppi muscolari</label>
+            <div class="multi-select" id="muscle-group-multi">
+              <button id="muscle-group-trigger" class="multi-trigger" type="button">Tutti i gruppi muscolari</button>
+              <div id="muscle-group-menu" class="multi-menu"></div>
+            </div>
+          </div>
+          <div class="action-row no-print">
+            <button id="generate-btn" class="fake-button" type="button">Genera circuito</button>
+          </div>
+        </div>
+
+        <!-- TAB PERSONALIZZATO -->
+        <div id="tab-custom" class="tab-content">
+          <div class="note-box" style="margin-bottom:16px;">Costruisci da zero. Seleziona gli esercizi, modificali e usa il Timer Custom.</div>
+          
+          <div class="field-block">
+            <label class="field-label" for="c-protocol">Protocollo Custom</label>
+            <select id="c-protocol" class="real-input">
+              <option value="amrap">AMRAP</option>
+              <option value="emom">EMOM</option>
+              <option value="interval" selected>INTERVAL TRAINING</option>
+            </select>
+          </div>
+          
+          <div class="field-block">
+            <label class="field-label" for="custom-ex-select">Aggiungi Esercizio</label>
+            <select id="custom-ex-select" class="real-input"></select>
+          </div>
+          <button id="add-custom-btn" class="secondary-button" style="width:100%; margin-bottom:16px;">+ Aggiungi al Circuito</button>
+          
+          <div class="field-label" style="border-top:1px solid rgba(255,255,255,0.1); padding-top:16px; margin-top:16px;">Impostazioni Timer</div>
+          
+          <div id="c-settings-interval" class="custom-timer-grid">
+            <div>
+              <label class="field-label">Lavoro (s)</label>
+              <input type="number" id="c-work" class="real-input" value="40">
+            </div>
+            <div>
+              <label class="field-label">Recupero (s)</label>
+              <input type="number" id="c-rest" class="real-input" value="15">
+            </div>
+            <div>
+              <label class="field-label">Pausa Giri (s)</label>
+              <input type="number" id="c-cycles" class="real-input" value="60">
+            </div>
+            <div>
+              <label class="field-label">N° Giri</label>
+              <input type="number" id="c-rounds" class="real-input" value="3">
+            </div>
+          </div>
+          
+          <div id="c-settings-duration" class="field-block" style="display:none;">
+            <label class="field-label">Durata Totale (minuti)</label>
+            <input type="number" id="c-duration" class="real-input" value="15">
+          </div>
+        </div>
+
+        <!-- AZIONI GLOBALI -->
+        <div class="action-row no-print" style="margin-top:10px;">
+          <button id="print-btn" class="secondary-button" type="button" disabled>Stampa PDF</button>
+          <button id="timer-btn" class="secondary-button" type="button" disabled style="background: rgba(34, 197, 94, 0.15); color: #4ade80; border-color: rgba(34, 197, 94, 0.3);">Avvia Timer</button>
+        </div>
+
+      </aside>
+
+      <section class="workspace-panel">
+        <div class="panel-title">
+          <h3 id="preview-title">Circuito generato</h3>
+          <span class="muted" id="preview-meta">in attesa del database esercizi</span>
+        </div>
+        <div id="protocol-summary" class="protocol-box"><strong>Schema del circuito</strong><div class="note-box">In attesa di generazione...</div></div>
+        <div class="stack" id="circuit-output"></div>
+      </section>
+    </section>
+  </main>
+
+  <!-- Modal Timer Visivo -->
+  <div id="timer-overlay" class="timer-overlay">
+    <div class="timer-box">
+      <div class="timer-canvas-wrapper"><canvas id="timer-canvas" width="560" height="560"></canvas></div>
+      <div id="amrap-panel" class="amrap-panel">
+        <div style="font-size:0.75rem; color:var(--muted); text-align:center; margin-bottom:8px; font-weight:bold;">ESERCIZI DEL CIRCUITO:</div>
+        <div id="amrap-list" class="amrap-list"></div>
+        <div class="amrap-counter-box"><span>GIRI: <span id="amrap-count-display">0</span></span><button id="btn-amrap-add">+1 Giro</button></div>
+      </div>
+      <div class="timer-actions">
+        <button id="btn-timer-play" class="secondary-button" type="button">Pausa</button>
+        <button id="btn-timer-stop" class="secondary-button" type="button">Termina</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* =========================================
+       1. EXERCISE DATABASE COMPLETO (100 Esercizi)
+       ========================================= */
+    const DB_SOURCE = [
+      { id: 1, name: "Goblet Squat", group: "Quadriceps", equipment: "Dumbbells", pattern: "Squat", structure: "Bilateral", focus: "Accessible quad dominant", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 2, name: "Barbell Back Squat", group: "Quadriceps", equipment: "Barbell", pattern: "Squat", structure: "Bilateral", focus: "Quad dominant compound", levels: ["intermediate", "advanced"] },
+      { id: 3, name: "Front Squat", group: "Quadriceps", equipment: "Barbell", pattern: "Squat", structure: "Bilateral", focus: "Upright quad dominant", levels: ["intermediate", "advanced"] },
+      { id: 4, name: "Heels Elevated Goblet Squat", group: "Quadriceps", equipment: "Dumbbells", pattern: "Squat", structure: "Bilateral", focus: "Increased knee travel", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 5, name: "Cyclist Squat", group: "Quadriceps", equipment: "Dumbbells", pattern: "Squat", structure: "Bilateral", focus: "Strong quad bias", levels: ["intermediate", "advanced"] },
+      { id: 6, name: "Landmine Squat", group: "Quadriceps", equipment: "Landmine", pattern: "Squat", structure: "Bilateral", focus: "Quad and glute", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 7, name: "Landmine Heel Elevated Squat", group: "Quadriceps", equipment: "Landmine", pattern: "Squat", structure: "Bilateral", focus: "Quad bias", levels: ["intermediate", "advanced"] },
+      { id: 8, name: "Barbell Zercher Squat", group: "Quadriceps", equipment: "Barbell", pattern: "Squat", structure: "Bilateral", focus: "Front-loaded quad emphasis", levels: ["intermediate", "advanced"] },
+      { id: 9, name: "Box Squat", group: "Quadriceps", equipment: "Barbell", pattern: "Squat", structure: "Bilateral", focus: "Controlled depth", levels: ["intermediate", "advanced"] },
+      { id: 10, name: "Bulgarian Split Squat", group: "Quadriceps", equipment: "Dumbbells", pattern: "Split Squat", structure: "Unilateral", focus: "Quad and glute", levels: ["intermediate", "advanced"] },
+      { id: 11, name: "Front Foot Elevated Split Squat", group: "Quadriceps", equipment: "Dumbbells", pattern: "Split Squat", structure: "Unilateral", focus: "Quad stretch emphasis", levels: ["intermediate", "advanced"] },
+      { id: 12, name: "Walking Lunges", group: "Quadriceps", equipment: "Dumbbells", pattern: "Lunge", structure: "Unilateral", focus: "Gait pattern", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 13, name: "Dumbbell Front Foot Elevated Reverse Lunge", group: "Quadriceps", equipment: "Dumbbells", pattern: "Lunge", structure: "Unilateral", focus: "Knee dominant lunge", levels: ["intermediate", "advanced"] },
+      { id: 14, name: "Step-Up", group: "Quadriceps", equipment: "Dumbbells", pattern: "Step-Up", structure: "Unilateral", focus: "Quad and glute", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 15, name: "Landmine Split Squat", group: "Quadriceps", equipment: "Landmine", pattern: "Split Squat", structure: "Unilateral", focus: "Quad emphasis", levels: ["intermediate", "advanced"] },
+      { id: 16, name: "Spanish Squat", group: "Quadriceps", equipment: "TRX", pattern: "Squat", structure: "Bilateral", focus: "High quad tension", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 17, name: "Romanian Deadlift", group: "Hamstrings", equipment: "Barbell", pattern: "Hip Hinge", structure: "Bilateral", focus: "Posterior chain", levels: ["intermediate", "advanced"] },
+      { id: 18, name: "Dumbbell Romanian Deadlift", group: "Hamstrings", equipment: "Dumbbells", pattern: "Hip Hinge", structure: "Bilateral", focus: "Posterior chain", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 19, name: "Stiff Leg Deadlift", group: "Hamstrings", equipment: "Barbell", pattern: "Hip Hinge", structure: "Bilateral", focus: "Long hamstring length", levels: ["intermediate", "advanced"] },
+      { id: 20, name: "Single Leg Romanian Deadlift", group: "Hamstrings", equipment: "Dumbbells", pattern: "Hip Hinge", structure: "Unilateral", focus: "Balance and hamstrings", levels: ["intermediate", "advanced"] },
+      { id: 21, name: "B-Stance Romanian Deadlift", group: "Hamstrings", equipment: "Dumbbells", pattern: "Hip Hinge", structure: "Unilateral", focus: "Staggered hamstring emphasis", levels: ["intermediate", "advanced"] },
+      { id: 22, name: "Landmine Romanian Deadlift", group: "Hamstrings", equipment: "Landmine", pattern: "Hip Hinge", structure: "Bilateral", focus: "Hinge variation", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 23, name: "Barbell Good Morning", group: "Hamstrings", equipment: "Barbell", pattern: "Hip Hinge", structure: "Bilateral", focus: "Hamstrings and spinal erectors", levels: ["intermediate", "advanced"] },
+      { id: 24, name: "TRX Hamstring Curl", group: "Hamstrings", equipment: "TRX", pattern: "Knee Flexion", structure: "Bilateral", focus: "Hamstrings and glutes", levels: ["intermediate", "advanced"] },
+      { id: 25, name: "TRX Single Leg Hamstring Curl", group: "Hamstrings", equipment: "TRX", pattern: "Knee Flexion", structure: "Unilateral", focus: "High stability demand", levels: ["intermediate", "advanced"] },
+      { id: 26, name: "Barbell Hip Thrust", group: "Glutes", equipment: "Barbell", pattern: "Hip Thrust", structure: "Bilateral", focus: "Glute max", levels: ["intermediate", "advanced"] },
+      { id: 27, name: "Dumbbell Hip Thrust", group: "Glutes", equipment: "Dumbbells", pattern: "Hip Thrust", structure: "Bilateral", focus: "Glute max", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 28, name: "Glute Bridge", group: "Glutes", equipment: "Bodyweight", pattern: "Bridge", structure: "Bilateral", focus: "Glute drive", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 29, name: "Single Leg Hip Thrust", group: "Glutes", equipment: "Bodyweight", pattern: "Hip Thrust", structure: "Unilateral", focus: "Unilateral glute work", levels: ["intermediate", "advanced"] },
+      { id: 30, name: "Landmine Reverse Lunge", group: "Glutes", equipment: "Landmine", pattern: "Lunge", structure: "Unilateral", focus: "Glute dominant lunge", levels: ["intermediate", "advanced"] },
+      { id: 31, name: "TRX Single Leg Squat", group: "Glutes", equipment: "TRX", pattern: "Squat", structure: "Unilateral", focus: "Hip stability", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 32, name: "TRX Lateral Lunge", group: "Glutes", equipment: "TRX", pattern: "Lunge", structure: "Unilateral", focus: "Frontal plane control", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 33, name: "Landmine Lateral Lunge", group: "Glutes", equipment: "Landmine", pattern: "Lunge", structure: "Unilateral", focus: "Frontal plane hip control", levels: ["intermediate", "advanced"] },
+      { id: 34, name: "Side Step Squat", group: "Glutes", equipment: "Bodyweight", pattern: "Squat", structure: "Bilateral", focus: "Glute med and frontal plane control", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 35, name: "Side Plank Hip Abduction", group: "Glutes", equipment: "Bodyweight", pattern: "Anti-Lateral Flexion", structure: "Unilateral", focus: "Glute med and core", levels: ["intermediate", "advanced"] },
+      { id: 36, name: "Cossack Squat", group: "Adductors", equipment: "Bodyweight", pattern: "Lateral Squat", structure: "Unilateral", focus: "Frontal plane adductors", levels: ["intermediate", "advanced"] },
+      { id: 37, name: "Lateral Lunge", group: "Adductors", equipment: "Dumbbells", pattern: "Lunge", structure: "Unilateral", focus: "Adductors", levels: ["intermediate", "advanced"] },
+      { id: 38, name: "TRX Assisted Cossack Squat", group: "Adductors", equipment: "TRX", pattern: "Lateral Squat", structure: "Unilateral", focus: "Assisted adductor mobility-strength", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 39, name: "Single Leg Calf Raise", group: "Calves", equipment: "Bodyweight", pattern: "Plantar Flexion", structure: "Unilateral", focus: "Calf isolation", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 40, name: "Farmer Calf Raise Walk", group: "Calves", equipment: "Dumbbells", pattern: "Carry", structure: "Bilateral", focus: "Endurance and calves", levels: ["intermediate", "advanced"] },
+      { id: 41, name: "Deficit Calf Raise on Box", group: "Calves", equipment: "Plyo Box", pattern: "Plantar Flexion", structure: "Bilateral", focus: "Stretch emphasis", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 42, name: "Push Up", group: "Chest", equipment: "Bodyweight", pattern: "Push", structure: "Bilateral", focus: "Bodyweight horizontal press", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 43, name: "TRX Push Up", group: "Chest", equipment: "TRX", pattern: "Push", structure: "Bilateral", focus: "Instability chest press", levels: ["intermediate", "advanced"] },
+      { id: 44, name: "Close Grip Push Up", group: "Chest", equipment: "Bodyweight", pattern: "Push", structure: "Bilateral", focus: "Triceps bias push", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 45, name: "Bench Press", group: "Chest", equipment: "Barbell", pattern: "Push", structure: "Bilateral", focus: "Compound horizontal press", levels: ["intermediate", "advanced"], circuitFriendly: false },
+      { id: 46, name: "Incline Dumbbell Press", group: "Chest", equipment: "Dumbbells", pattern: "Push", structure: "Bilateral", focus: "Upper chest press", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 47, name: "Close Grip Floor Press", group: "Chest", equipment: "Barbell", pattern: "Push", structure: "Bilateral", focus: "Press with triceps bias", levels: ["intermediate", "advanced"] },
+      { id: 48, name: "TRX Row", group: "Back", equipment: "TRX", pattern: "Pull", structure: "Bilateral", focus: "Bodyweight row", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 49, name: "Pull Up", group: "Back", equipment: "Bodyweight", pattern: "Pull", structure: "Bilateral", focus: "Vertical pull", levels: ["intermediate", "advanced"] },
+      { id: 50, name: "Chin Up", group: "Back", equipment: "Bodyweight", pattern: "Pull", structure: "Bilateral", focus: "Vertical pull with supinated grip", levels: ["intermediate", "advanced"] },
+      { id: 51, name: "One Arm Dumbbell Row", group: "Back", equipment: "Dumbbells", pattern: "Pull", structure: "Unilateral", focus: "Lats and upper back", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 52, name: "TRX Power Pull", group: "Back", equipment: "TRX", pattern: "Pull", structure: "Unilateral", focus: "Athletic upper body and core", levels: ["intermediate", "advanced"] },
+      { id: 53, name: "Side Plank Row with TRX", group: "Back", equipment: "TRX", pattern: "Pull", structure: "Unilateral", focus: "Pull plus anti-rotation", levels: ["intermediate", "advanced"] },
+      { id: 54, name: "Barbell High Pull", group: "Back", equipment: "Barbell", pattern: "Pull", structure: "Bilateral", focus: "Power pull", levels: ["intermediate", "advanced"] },
+      { id: 55, name: "Barbell Clean Pull", group: "Back", equipment: "Barbell", pattern: "Pull", structure: "Bilateral", focus: "Explosive lower body pull", levels: ["intermediate", "advanced"] },
+      { id: 56, name: "Dumbbell Shoulder Press", group: "Shoulders", equipment: "Dumbbells", pattern: "Push", structure: "Bilateral", focus: "Overhead press", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 57, name: "Overhead Press", group: "Shoulders", equipment: "Barbell", pattern: "Push", structure: "Bilateral", focus: "Vertical press", levels: ["intermediate", "advanced"], circuitFriendly: false },
+      { id: 58, name: "Landmine Press", group: "Shoulders", equipment: "Landmine", pattern: "Push", structure: "Unilateral", focus: "Shoulder-friendly press with core demand", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 59, name: "Dumbbell Push Press", group: "Shoulders", equipment: "Dumbbells", pattern: "Push", structure: "Bilateral", focus: "Dip-drive power", levels: ["intermediate", "advanced"] },
+      { id: 60, name: "Landmine Push Press", group: "Shoulders", equipment: "Landmine", pattern: "Push", structure: "Unilateral", focus: "Power press", levels: ["intermediate", "advanced"] },
+      { id: 61, name: "Front Plank", group: "Core", equipment: "Bodyweight", pattern: "Anti-Extension", structure: "Bilateral", focus: "Anterior core", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 62, name: "TRX Plank", group: "Core", equipment: "TRX", pattern: "Anti-Extension", structure: "Bilateral", focus: "Anterior core with instability", levels: ["intermediate", "advanced"] },
+      { id: 63, name: "Side Plank", group: "Core", equipment: "Bodyweight", pattern: "Anti-Lateral Flexion", structure: "Unilateral", focus: "Lateral core", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 64, name: "TRX Side Plank", group: "Core", equipment: "TRX", pattern: "Anti-Lateral Flexion", structure: "Unilateral", focus: "Obliques", levels: ["intermediate", "advanced"] },
+      { id: 65, name: "Dead Bug", group: "Core", equipment: "Bodyweight", pattern: "Anti-Extension", structure: "Bilateral", focus: "Deep core control", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 66, name: "Dumbbell Dead Bug", group: "Core", equipment: "Dumbbells", pattern: "Anti-Extension", structure: "Bilateral", focus: "Deep core with load", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 67, name: "Landmine Dead Bug Press", group: "Core", equipment: "Landmine", pattern: "Anti-Extension", structure: "Unilateral", focus: "Deep core and press integration", levels: ["intermediate", "advanced"] },
+      { id: 68, name: "Hollow Body Hold", group: "Core", equipment: "Bodyweight", pattern: "Anti-Extension", structure: "Bilateral", focus: "Anterior core", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 69, name: "V Sit Hold", group: "Core", equipment: "Bodyweight", pattern: "Anti-Extension", structure: "Bilateral", focus: "Anterior core and hip flexion", levels: ["intermediate", "advanced"] },
+      { id: 70, name: "TRX Pike", group: "Core", equipment: "TRX", pattern: "Anti-Extension", structure: "Bilateral", focus: "Anterior core and hip flexion", levels: ["intermediate", "advanced"] },
+      { id: 71, name: "TRX Knee Tuck", group: "Core", equipment: "TRX", pattern: "Anti-Extension", structure: "Bilateral", focus: "Lower abs", levels: ["intermediate", "advanced"] },
+      { id: 72, name: "TRX Body Saw", group: "Core", equipment: "TRX", pattern: "Anti-Extension", structure: "Bilateral", focus: "Anterior core", levels: ["intermediate", "advanced"] },
+      { id: 73, name: "TRX Fallout", group: "Core", equipment: "TRX", pattern: "Anti-Extension", structure: "Bilateral", focus: "Anterior core long lever", levels: ["intermediate", "advanced"] },
+      { id: 74, name: "Mountain Climbers", group: "Core", equipment: "Bodyweight", pattern: "Dynamic Core", structure: "Bilateral", focus: "Core and conditioning", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 75, name: "Landmine Rotation", group: "Obliques", equipment: "Landmine", pattern: "Rotation", structure: "Bilateral", focus: "Obliques", levels: ["intermediate", "advanced"] },
+      { id: 76, name: "Landmine Russian Twist", group: "Obliques", equipment: "Landmine", pattern: "Rotation", structure: "Bilateral", focus: "Abs and obliques", levels: ["intermediate", "advanced"] },
+      { id: 77, name: "Half Kneeling Landmine Rotation", group: "Obliques", equipment: "Landmine", pattern: "Rotation", structure: "Unilateral", focus: "Obliques and glutes", levels: ["intermediate", "advanced"] },
+      { id: 78, name: "Landmine Anti Rotation Press", group: "Obliques", equipment: "Landmine", pattern: "Anti-Rotation", structure: "Unilateral", focus: "Obliques", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 79, name: "Landmine Anti Rotation Hold", group: "Obliques", equipment: "Landmine", pattern: "Anti-Rotation", structure: "Unilateral", focus: "Obliques", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 80, name: "TRX Oblique Crunch", group: "Obliques", equipment: "TRX", pattern: "Rotation", structure: "Bilateral", focus: "Obliques", levels: ["intermediate", "advanced"] },
+      { id: 81, name: "Suitcase Carry", group: "Obliques", equipment: "Dumbbells", pattern: "Carry", structure: "Unilateral", focus: "Anti-lateral flexion", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 82, name: "Single Arm Farmer Carry", group: "Obliques", equipment: "Dumbbells", pattern: "Carry", structure: "Unilateral", focus: "Anti-lateral flexion", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 83, name: "Farmer Carry", group: "Obliques", equipment: "Dumbbells", pattern: "Carry", structure: "Bilateral", focus: "Grip, trunk and gait stability", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 84, name: "Waiter Carry", group: "Obliques", equipment: "Dumbbells", pattern: "Carry", structure: "Unilateral", focus: "Obliques and shoulder stability", levels: ["intermediate", "advanced"] },
+      { id: 85, name: "Single Arm Overhead Carry", group: "Obliques", equipment: "Dumbbells", pattern: "Carry", structure: "Unilateral", focus: "Anti-lateral flexion and shoulder stability", levels: ["intermediate", "advanced"] },
+      { id: 86, name: "Front Rack Carry", group: "Obliques", equipment: "Dumbbells", pattern: "Carry", structure: "Bilateral", focus: "Anti-rotation", levels: ["intermediate", "advanced"] },
+      { id: 87, name: "Cross Body Dumbbell March", group: "Obliques", equipment: "Dumbbells", pattern: "Carry", structure: "Unilateral", focus: "March and anti-rotation", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 88, name: "Offset Farmer Carry", group: "Obliques", equipment: "Dumbbells", pattern: "Carry", structure: "Bilateral", focus: "Offset anti-lateral flexion", levels: ["intermediate", "advanced"] },
+      { id: 89, name: "Barbell Thruster", group: "Total Body", equipment: "Barbell", pattern: "Squat to Press", structure: "Bilateral", focus: "Total body power", levels: ["intermediate", "advanced"] },
+      { id: 90, name: "Dumbbell Thruster", group: "Total Body", equipment: "Dumbbells", pattern: "Squat to Press", structure: "Bilateral", focus: "Total body power", levels: ["intermediate", "advanced"] },
+      { id: 91, name: "Landmine Thruster", group: "Total Body", equipment: "Landmine", pattern: "Squat to Press", structure: "Bilateral", focus: "Total body power", levels: ["intermediate", "advanced"] },
+      { id: 92, name: "Dumbbell Step Up + Press", group: "Total Body", equipment: "Dumbbells", pattern: "Step-Up to Press", structure: "Unilateral", focus: "Athletic integration", levels: ["intermediate", "advanced"] },
+      { id: 93, name: "Landmine Clean to Press", group: "Total Body", equipment: "Landmine", pattern: "Pull to Press", structure: "Bilateral", focus: "Power", levels: ["intermediate", "advanced"] },
+      { id: 94, name: "Dumbbell Clean and Press", group: "Total Body", equipment: "Dumbbells", pattern: "Pull to Press", structure: "Bilateral", focus: "Total body power", levels: ["intermediate", "advanced"] },
+      { id: 95, name: "Dumbbell Snatch", group: "Total Body", equipment: "Dumbbells", pattern: "Pull", structure: "Unilateral", focus: "Overhead power", levels: ["intermediate", "advanced"] },
+      { id: 96, name: "Landmine Clean", group: "Total Body", equipment: "Landmine", pattern: "Pull", structure: "Unilateral", focus: "Power", levels: ["intermediate", "advanced"] },
+      { id: 97, name: "Box Jump", group: "Total Body", equipment: "Plyo Box", pattern: "Jump", structure: "Bilateral", focus: "Explosive power", levels: ["intermediate", "advanced"] },
+      { id: 98, name: "Burpee Box Jump", group: "Total Body", equipment: "Plyo Box", pattern: "Conditioning", structure: "Bilateral", focus: "Conditioning and power", levels: ["intermediate", "advanced"] },
+      { id: 99, name: "Step Up to Knee Drive", group: "Total Body", equipment: "Plyo Box", pattern: "Step-Up", structure: "Unilateral", focus: "Athletic drive", levels: ["beginner", "intermediate", "advanced"] },
+      { id: 100, name: "TRX Atomic Push Up", group: "Total Body", equipment: "TRX", pattern: "Push", structure: "Bilateral", focus: "Total body and core", levels: ["intermediate", "advanced"] }
+    ];
+
+    const normalizeText = (val) => String(val || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    const mapToPrimaryPattern = (pattern) => {
+      const p = normalizeText(pattern);
+      if (['squat', 'knee dominant', 'leg extension'].some(k => p.includes(k))) return 'Squat';
+      if (['hinge', 'deadlift', 'good morning', 'hip thrust', 'bridge', 'leg curl'].some(k => p.includes(k))) return 'Hip Hinge';
+      if (['lunge', 'split squat', 'step-up', 'step up', 'reverse lunge', 'cossack'].some(k => p.includes(k))) return 'Lunge';
+      if (['push', 'press', 'bench', 'dip', 'fly'].some(k => p.includes(k))) return 'Push';
+      if (['pull', 'row', 'chin-up', 'chin up', 'pulldown', 'face pull'].some(k => p.includes(k))) return 'Pull';
+      if (['carry', 'crawl'].some(k => p.includes(k))) return 'Carry';
+      return 'Core';
+    };
+
+    const isAllowedEquipment = (eq) => { const e = normalizeText(eq); return e && !e.includes('machine') && !e.includes('cable'); };
+    
+    // NORMALIZE CORRETTO: Assicura che `muscleGroup` sia sempre valorizzato
+    const normalizeExercise = (item) => ({
+      ...item, 
+      name: item.name || 'Unnamed', 
+      equipment: item.equipment || 'Unknown', 
+      primaryPattern: mapToPrimaryPattern(item.pattern), 
+      muscleGroup: item.group || item.muscleGroup || 'General',
+      levels: Array.isArray(item.levels) ? item.levels.map(normalizeText) : ['all']
+    });
+    
+    const pool = DB_SOURCE.map(normalizeExercise).filter(i => isAllowedEquipment(i.equipment));
+
+    /* =========================================
+       3. WOD REP ENGINE 
+       ========================================= */
+    const getRepTarget = (item, protocol) => {
+      const eq = normalizeText(item.equipment), pat = normalizeText(item.primaryPattern), name = normalizeText(item.name);
+
+      if (pat.includes('carry')) {
+         const meters = Math.floor(Math.random() * (40 - 15 + 1)) + 15; 
+         return `${meters} mt/passi`;
+      }
+
+      if (name.includes('plank') || name.includes('hold')) {
+         let minSec = protocol === 'emom' ? 20 : 30, maxSec = protocol === 'emom' ? 35 : 45;
+         const sec = minSec + (Math.floor(Math.random() * ((maxSec - minSec)/5 + 1)) * 5);
+         return item.structure === 'Unilateral' ? `${sec} sec/lato` : `${sec} sec`;
+      }
+
+      let min = 8, max = 12;
+      if (eq.includes('bodyweight')) {
+         if (pat.includes('squat') || pat.includes('lunge')) { min = 15; max = 25; } 
+         else if (pat.includes('pull')) { min = 5; max = 10; } 
+         else { min = 10; max = 20; } 
+      } else if (eq.includes('barbell')) {
+         if (pat.includes('total body')) { min = 3; max = 7; } 
+         else { min = 5; max = 10; } 
+      } else {
+         if (pat.includes('total body')) { min = 6; max = 10; } 
+         else { min = 8; max = 15; } 
+      }
+      if (pat.includes('core')) { min = 15; max = 25; } 
+
+      if (protocol === 'emom') { min = Math.max(2, Math.floor(min * 0.65)); max = Math.max(3, Math.floor(max * 0.75)); }
+      const reps = Math.floor(Math.random() * (max - min + 1)) + min;
+      return item.structure === 'Unilateral' ? `${Math.max(3, Math.ceil(reps / 2))}/lato` : `${reps} reps`;
+    };
+
+    /* =========================================
+       4. TIMER ENGINE
+       ========================================= */
+    const TimerSystem = (() => {
+      const canvas = document.getElementById('timer-canvas'), ctx = canvas.getContext('2d'), overlay = document.getElementById('timer-overlay'),
+            btnPlay = document.getElementById('btn-timer-play'), btnStop = document.getElementById('btn-timer-stop'),
+            amrapPanel = document.getElementById('amrap-panel'), amrapList = document.getElementById('amrap-list'), amrapCountDisplay = document.getElementById('amrap-count-display');
+      canvas.width = 560; canvas.height = 560; ctx.scale(2, 2); 
+      
+      let queue = [], currentIndex = 0, reqId = null, isPaused = false, lastTime = 0, lastSec = 0, isAmrapMode = false, amrapCount = 0;
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const playTone = (freq, type, dur, vol = 1) => {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.type = type; osc.frequency.value = freq; osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); gain.gain.setValueAtTime(vol, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+        setTimeout(() => osc.stop(), dur * 1000);
+      };
+      const playBell = () => { playTone(880, 'sine', 1.5, 1); playTone(1760, 'sine', 1.5, 0.4); };
+      const playTick = () => playTone(800, 'sine', 0.1, 0.2);
+
+      document.getElementById('btn-amrap-add').addEventListener('click', () => { amrapCount++; amrapCountDisplay.textContent = amrapCount; playTick(); });
+
+      const drawFrame = () => {
+        if(isPaused) return;
+        const now = performance.now(), delta = (now - lastTime) / 1000; lastTime = now;
+        const phase = queue[currentIndex];
+        
+        if(!phase) {
+          ctx.clearRect(0,0,280,280); ctx.fillStyle = '#22c55e'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.font = 'bold 28px Inter'; ctx.fillText('COMPLETATO!', 140, 120);
+          ctx.font = '16px Inter'; ctx.fillStyle = '#aab4d6'; ctx.fillText(isAmrapMode ? `Hai chiuso ${amrapCount} giri! 🏆` : 'Ottimo Lavoro 🔥', 140, 160); return;
+        }
+
+        const sec = Math.ceil(phase.timeLeft);
+        if (sec !== lastSec) { if (sec <= 3 && sec > 0) playTick(); lastSec = sec; }
+        phase.timeLeft -= delta;
+
+        if(phase.timeLeft <= 0) {
+           currentIndex++; if (currentIndex < queue.length) { playBell(); lastSec = 0; } else { playBell(); setTimeout(playBell, 400); }
+           lastTime = performance.now(); reqId = requestAnimationFrame(drawFrame); return;
+        }
+
+        ctx.clearRect(0, 0, 280, 280);
+        ctx.beginPath(); ctx.arc(140, 128, 115, 0.75 * Math.PI, 2.25 * Math.PI); ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 14; ctx.lineCap = 'round'; ctx.stroke();
+        const pct = phase.timeLeft / phase.duration;
+        ctx.beginPath(); ctx.arc(140, 128, 115, 0.75 * Math.PI, 0.75 * Math.PI + (pct * 1.5 * Math.PI)); ctx.strokeStyle = phase.color; ctx.lineWidth = 14; ctx.lineCap = 'round'; ctx.shadowColor = phase.color; ctx.shadowBlur = 12; ctx.stroke(); ctx.shadowBlur = 0; 
+
+        let timeText = sec.toString();
+        if (phase.type === 'amrap' || sec >= 60) { const m = Math.floor(sec / 60); timeText = `${m}:${(sec % 60).toString().padStart(2, '0')}`; }
+
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff'; ctx.font = timeText.length > 2 ? 'bold 54px Inter' : 'bold 68px Inter'; ctx.fillText(timeText, 140, 135);
+        ctx.fillStyle = phase.color; ctx.font = 'bold 15px Inter'; ctx.fillText(phase.name, 140, 70);
+        ctx.fillStyle = '#aab4d6'; ctx.font = '14px Inter'; ctx.fillText(phase.subtitle || '', 140, 195);
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 22px Inter'; ctx.fillText(phase.highlight || '', 140, 250, 260);
+        reqId = requestAnimationFrame(drawFrame);
+      };
+
+      const start = (planData) => {
+        queue = []; const { plan, picked } = planData;
+        isAmrapMode = plan.type === 'AMRAP';
+        
+        if (isAmrapMode) {
+          amrapCount = 0; amrapCountDisplay.textContent = '0';
+          amrapList.innerHTML = picked.map(ex => `<span class="amrap-tag">${ex.name} <strong>${ex.assignedReps}</strong></span>`).join('');
+          amrapPanel.style.display = 'block';
+        } else amrapPanel.style.display = 'none';
+        
+        queue.push({ type: 'prep', name: 'PREPARA', subtitle: 'Inizia tra', highlight: 'PARTENZA', duration: 5, timeLeft: 5, color: '#0ea5e9' });
+        
+        if (plan.type.includes('INTERVAL') || plan.type === 'CUSTOM INTERVAL') {
+           const raw = plan.raw;
+           for(let r=1; r<=raw.rounds; r++) {
+               for(let s=0; s<picked.length; s++) {
+                   const repText = plan.type.includes('INTERVAL') && !plan.type.includes('CUSTOM') ? '' : ` • ${picked[s].assignedReps}`;
+                   queue.push({ type: 'work', name: 'LAVORO', subtitle: `${r}° Giro${repText}`, highlight: picked[s].name, duration: raw.workSeconds, timeLeft: raw.workSeconds, color: '#22c55e' });
+                   if (s < picked.length - 1) queue.push({ type: 'rest', name: 'RECUPERO', subtitle: 'Prossimo:', highlight: picked[s+1].name, duration: raw.restBetweenStations, timeLeft: raw.restBetweenStations, color: '#f59e0b' });
+               }
+               if (r < raw.rounds) queue.push({ type: 'cycle-rest', name: 'PAUSA GIRO', subtitle: '', highlight: `Prep. al ${r+1}° Giro`, duration: raw.restBetweenCycles, timeLeft: raw.restBetweenCycles, color: '#8b5cf6' });
+           }
+        } else if (plan.type === 'EMOM') {
+           const rounds = Math.floor(plan.totalSeconds / 60);
+           for(let r=1; r<=rounds; r++) queue.push({ type: 'emom', name: `EMOM • MIN ${r}`, subtitle: `Fai ${picked[(r-1)%picked.length].assignedReps} e riposa`, highlight: picked[(r-1)%picked.length].name, duration: 60, timeLeft: 60, color: '#6ea8fe' });
+        } else {
+           queue.push({ type: 'amrap', name: 'AMRAP', subtitle: 'Tempo rimanente', highlight: 'Esegui il Circuito!', duration: plan.totalSeconds, timeLeft: plan.totalSeconds, color: '#ef4444' });
+        }
+
+        currentIndex = 0; isPaused = false; lastSec = 0; btnPlay.textContent = 'Pausa'; overlay.classList.add('is-active');
+        if(audioCtx.state === 'suspended') audioCtx.resume(); lastTime = performance.now(); drawFrame();
+      };
+      
+      btnPlay.addEventListener('click', () => { isPaused = !isPaused; btnPlay.textContent = isPaused ? 'Riprendi' : 'Pausa'; if(!isPaused) { lastTime = performance.now(); drawFrame(); } });
+      btnStop.addEventListener('click', () => { cancelAnimationFrame(reqId); overlay.classList.remove('is-active'); });
+      return { start };
+    })();
+
+    /* =========================================
+       5. MAIN APP (Tab, Swap, Custom Builder)
+       ========================================= */
+    const refs = {
+      stCount: document.getElementById('station-count'), dur: document.getElementById('duration'), prot: document.getElementById('protocol'), diff: document.getElementById('difficulty'),
+      genBtn: document.getElementById('generate-btn'), printBtn: document.getElementById('print-btn'), timerBtn: document.getElementById('timer-btn'),
+      out: document.getElementById('circuit-output'), pMeta: document.getElementById('preview-meta'), pSum: document.getElementById('protocol-summary'),
+      tabs: document.querySelectorAll('.tab-btn'), contents: document.querySelectorAll('.tab-content'),
+      customSelect: document.getElementById('custom-ex-select'), addCustomBtn: document.getElementById('add-custom-btn'),
+      cWork: document.getElementById('c-work'), cRest: document.getElementById('c-rest'), cCycles: document.getElementById('c-cycles'), cRounds: document.getElementById('c-rounds'),
+      // Ripristino riferimenti per i menu Multi-Select
+      eqMenu: document.getElementById('equipment-menu'), eqTrig: document.getElementById('equipment-trigger'),
+      musMenu: document.getElementById('muscle-group-menu'), musTrig: document.getElementById('muscle-group-trigger')
+    };
+    
+    const cProtocol = document.getElementById('c-protocol');
+    const cSettingsInterval = document.getElementById('c-settings-interval');
+    const cSettingsDuration = document.getElementById('c-settings-duration');
+    const cDuration = document.getElementById('c-duration');
+    
+    let lastGen = null; let isCustomMode = false;
+
+    // Tabs
+    refs.tabs.forEach(btn => btn.addEventListener('click', (e) => {
+      refs.tabs.forEach(t => t.classList.remove('active')); refs.contents.forEach(c => c.classList.remove('active'));
+      e.target.classList.add('active'); document.getElementById(e.target.dataset.target).classList.add('active');
+      isCustomMode = e.target.dataset.target === 'tab-custom';
+      if(isCustomMode) initCustomMode();
+    }));
+    
+    // SETUP MULTI-SELECT
+    const getMultiVals = (menu) => [...menu.querySelectorAll('input:checked')].map(i => i.value);
+
+    const setupMulti = (menu, trig, key, placeholder) => {
+      const vals = [...new Set(pool.map(i => i[key]).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+      menu.innerHTML = vals.map(v => `<label class="multi-option"><input type="checkbox" value="${v}"/><span>${v}</span></label>`).join('');
+      const update = () => { const sel = getMultiVals(menu); trig.textContent = sel.length === 0 ? placeholder : sel.length === 1 ? sel[0] : `${sel.length} selezioni`; };
+      menu.addEventListener('change', update);
+      trig.addEventListener('click', (e) => { 
+        e.preventDefault(); 
+        const open = menu.parentElement.classList.contains('is-open'); 
+        document.querySelectorAll('.multi-select.is-open').forEach(n => n.classList.remove('is-open')); 
+        if (!open) menu.parentElement.classList.add('is-open'); 
+      });
+    };
+
+    document.addEventListener('click', e => document.querySelectorAll('.multi-select.is-open').forEach(n => { if (!n.contains(e.target)) n.classList.remove('is-open'); }));
+
+    setupMulti(refs.eqMenu, refs.eqTrig, 'equipment', "Tutta l'attrezzatura");
+    setupMulti(refs.musMenu, refs.musTrig, 'muscleGroup', 'Tutti i gruppi muscolari');
+
+    const getMuscleScore = (item, selected) => {
+      if (!selected.length) return 1;
+      const m = normalizeText(item.muscleGroup);
+      const f = item.focus ? normalizeText(item.focus) : '';
+      return selected.reduce((max, g) => Math.max(max, m.includes(normalizeText(g)) ? 3 : f.includes(normalizeText(g)) ? 2 : 0), 0);
+    };
+
+    // Gestione visualizzazione opzioni Timer in Custom
+    cProtocol.addEventListener('change', () => {
+      if (cProtocol.value === 'interval') {
+        cSettingsInterval.style.display = 'grid';
+        cSettingsDuration.style.display = 'none';
+      } else {
+        cSettingsInterval.style.display = 'none';
+        cSettingsDuration.style.display = 'block';
+      }
+      
+      // Se si cambia protocollo, ricalcoliamo le rep ideali se ci sono esercizi
+      if (lastGen && lastGen.picked) {
+        lastGen.picked.forEach(ex => ex.assignedReps = getRepTarget(ex, cProtocol.value));
+      }
+      renderWorkspace();
+    });
+
+    cDuration.addEventListener('input', () => { if(isCustomMode) renderWorkspace(); });
+
+    // Render Workspace (Unificato e Condizionale sulle Reps)
+    const renderWorkspace = () => {
+      if(!lastGen || !lastGen.picked.length) {
+        refs.out.innerHTML = `<div class="empty-slot"><div class="slot-top">Vuoto</div><div class="muted">Nessun esercizio nel circuito.</div></div>`;
+        refs.printBtn.disabled = true; refs.timerBtn.disabled = true; return;
+      }
+      
+      const currentProt = isCustomMode ? cProtocol.value : refs.prot.value;
+      const showReps = currentProt !== 'interval';
+      
+      refs.out.innerHTML = lastGen.picked.map((ex, i) => `
+        <div class="empty-slot station-card">
+          <div class="slot-top">
+            <div style="display:flex; align-items:center; gap:8px"><span>Stazione ${i + 1}</span><span class="tag">${ex.structure}</span></div>
+            ${showReps 
+              ? `<input type="text" class="rep-input" data-idx="${i}" value="${ex.assignedReps}" title="Modifica ripetizioni">` 
+              : `<span class="tag" style="background:rgba(255,255,255,0.05);border:none;color:var(--muted)">A Tempo</span>`
+            }
+          </div>
+          <strong>${ex.name}</strong>
+          <div class="muted">${ex.muscleGroup} • ${ex.primaryPattern}</div>
+          <div class="muted">Attrezzatura: ${ex.equipment}</div>
+          <button class="btn-swap no-print" data-idx="${i}" title="Sostituisci Esercizio">🔄</button>
+          ${isCustomMode ? `<button class="btn-remove no-print" data-idx="${i}" title="Rimuovi">×</button>` : ''}
+        </div>
+      `).join('');
+      
+      refs.printBtn.disabled = false; refs.timerBtn.disabled = false;
+      
+      if(isCustomMode) {
+        if (currentProt === 'interval') {
+            const tr = parseInt(refs.cRounds.value) || 3; const tw = parseInt(refs.cWork.value) || 40; const tres = parseInt(refs.cRest.value) || 15; const tc = parseInt(refs.cCycles.value) || 60;
+            const sec = (tr * ((lastGen.picked.length * tw) + ((lastGen.picked.length - 1) * tres))) + ((tr - 1) * tc);
+            refs.pSum.innerHTML = `<strong>Circuito Custom (Interval)</strong><div class="protocol-grid"><div class="protocol-pill">Totale Stimato: ${Math.floor(sec/60)}' ${sec%60}"</div><div class="protocol-pill">${tr} Giri • ${lastGen.picked.length} Stazioni</div></div>`;
+        } else {
+            const dur = parseInt(cDuration.value) || 15;
+            refs.pSum.innerHTML = `<strong>Circuito Custom (${currentProt.toUpperCase()})</strong><div class="protocol-grid"><div class="protocol-pill">Durata: ${dur} min</div><div class="protocol-pill">${lastGen.picked.length} Stazioni</div></div>`;
+        }
+        refs.pMeta.textContent = "Modalità Costruzione Libera";
+      }
+    };
+
+    // Swap Esercizio
+    const swapExercise = (idx) => {
+      const oldEx = lastGen.picked[idx];
+      let cands = pool.filter(ex => !lastGen.picked.find(p => p.name === ex.name)); // Non presenti nel circ.
+      
+      cands.sort((a, b) => {
+        let scA = (a.primaryPattern === oldEx.primaryPattern ? 3 : 0) + (a.muscleGroup === oldEx.muscleGroup ? 1 : 0) - (a.primaryPattern === 'Carry' ? 2 : 0);
+        let scB = (b.primaryPattern === oldEx.primaryPattern ? 3 : 0) + (b.muscleGroup === oldEx.muscleGroup ? 1 : 0) - (b.primaryPattern === 'Carry' ? 2 : 0);
+        return scB - scA + (Math.random() - 0.5);
+      });
+      
+      if(cands.length) {
+        let newEx = {...cands[0]};
+        newEx.assignedReps = getRepTarget(newEx, isCustomMode ? cProtocol.value : refs.prot.value);
+        lastGen.picked[idx] = newEx;
+        renderWorkspace();
+      }
+    };
+
+    // Event Delegation Workspace (Edit Reps, Swap, Remove)
+    refs.out.addEventListener('input', (e) => { if(e.target.classList.contains('rep-input')) lastGen.picked[e.target.dataset.idx].assignedReps = e.target.value; });
+    refs.out.addEventListener('click', (e) => {
+      if(e.target.closest('.btn-swap')) swapExercise(e.target.closest('.btn-swap').dataset.idx);
+      if(e.target.closest('.btn-remove')) { lastGen.picked.splice(e.target.closest('.btn-remove').dataset.idx, 1); renderWorkspace(); }
+    });
+
+    // --- LOGICA CUSTOM ---
+    const initCustomMode = () => {
+      if(!refs.customSelect.options.length) {
+        const groups = [...new Set(pool.map(i=>i.muscleGroup))].sort();
+        refs.customSelect.innerHTML = groups.map(g => `<optgroup label="${g}">${pool.filter(i=>i.muscleGroup===g).map(ex => `<option value="${ex.id}">${ex.name}</option>`).join('')}</optgroup>`).join('');
+      }
+      lastGen = { picked: [], plan: { type: 'CUSTOM', raw: {} } }; renderWorkspace();
+    };
+    
+    refs.addCustomBtn.addEventListener('click', () => {
+      const ex = pool.find(i => i.id == refs.customSelect.value);
+      if(ex) { let nEx = {...ex}; nEx.assignedReps = getRepTarget(nEx, cProtocol.value); lastGen.picked.push(nEx); renderWorkspace(); }
+    });
+    [refs.cWork, refs.cRest, refs.cCycles, refs.cRounds].forEach(el => el.addEventListener('input', () => { if(isCustomMode) renderWorkspace(); }));
+
+    // --- LOGICA GENERATORE CASUALE ---
+    const buildProto = () => {
+      const dur = Number(refs.dur.value)*60, st = Number(refs.stCount.value), type = refs.prot.value;
+      if(type==='amrap') return { type:'AMRAP', totalSeconds:dur, summary:`${dur/60} minuti`, details:['Obiettivo: massimizzare giri'] };
+      if(type==='emom') { const r = Math.floor((dur/60)/st); return { type:'EMOM', totalSeconds:r*st*60, summary:`${r} giri da ${st} min`, details:['1 min per stazione'] }; }
+      return { type:'INTERVAL TRAINING', totalSeconds:dur, summary:`3 giri stimati`, raw:{ rounds:3, workSeconds:40, restBetweenStations:15, restBetweenCycles:60 }, details:['40" Lav / 15" Rec'] }; 
+    };
+
+    refs.genBtn.addEventListener('click', () => {
+      const plan = buildProto(); const diff = refs.diff.value;
+      const selEq = getMultiVals(refs.eqMenu);
+      const selMus = getMultiVals(refs.musMenu);
+      
+      let filt = pool.map(item => {
+        const dScore = (diff==='all'||item.levels.includes('all')?1:item.levels.includes(diff)?3:2);
+        const mScore = getMuscleScore(item, selMus);
+        const okEq = !selEq.length || selEq.includes(item.equipment);
+        
+        // Calcolo punteggio penalizzando molto i Carry e premiando i match di gruppo muscolare
+        let sc = dScore + mScore - (item.primaryPattern==='Carry'?1.2:0) + (item.circuitFriendly === false ? -0.35 : 0.25); 
+        return { ...item, score: sc + (Math.random()*0.8), ok: dScore > 0 && mScore > 0 && okEq };
+      }).filter(i => i.ok).sort((a,b) => b.score - a.score);
+
+      const picked = []; let counts = { p: {}, m: {} };
+      while(filt.length && picked.length < Number(refs.stCount.value)) {
+        filt.sort((a,b) => (b.score - (counts.p[b.primaryPattern]||0)*2 - (counts.m[b.muscleGroup]||0)) - (a.score - (counts.p[a.primaryPattern]||0)*2 - (counts.m[a.muscleGroup]||0)));
+        const sel = filt.shift(); sel.assignedReps = getRepTarget(sel, refs.prot.value);
+        picked.push(sel); counts.p[sel.primaryPattern] = (counts.p[sel.primaryPattern]||0)+1; counts.m[sel.muscleGroup] = (counts.m[sel.muscleGroup]||0)+1;
+      }
+      
+      lastGen = { picked, plan };
+      refs.pSum.innerHTML = `<strong>${plan.type}</strong><div class="protocol-grid"><div class="protocol-pill">Schema: ${plan.summary}</div></div>`;
+      refs.pMeta.textContent = `Generato con successo • ${plan.type}`;
+      renderWorkspace();
+    });
+
+    refs.printBtn.addEventListener('click', () => window.print());
+    
+    // --- AVVIO DEL TIMER ADATTIVO ---
+    refs.timerBtn.addEventListener('click', () => {
+      if(isCustomMode) {
+        const prot = cProtocol.value;
+        if (prot === 'interval') {
+            lastGen.plan = { 
+                type: 'CUSTOM INTERVAL', 
+                raw: { workSeconds:parseInt(refs.cWork.value)||40, restBetweenStations:parseInt(refs.cRest.value)||15, restBetweenCycles:parseInt(refs.cCycles.value)||60, rounds:parseInt(refs.cRounds.value)||3 } 
+            };
+        } else if (prot === 'emom') {
+            lastGen.plan = { type: 'EMOM', totalSeconds: (parseInt(cDuration.value)||15) * 60 };
+        } else {
+            lastGen.plan = { type: 'AMRAP', totalSeconds: (parseInt(cDuration.value)||15) * 60 };
+        }
+      }
+      TimerSystem.start(lastGen);
+    });
+
+  </script>
+</body>
+</html>
